@@ -2,8 +2,7 @@
 
 > Forked from developit's [little-vdom](https://gist.github.com/developit/2038b141b31287faa663f410b6649a87) gist.
 
-**npm**: `npm i @luwes/little-vdom`  
-**cdn**: [unpkg.com/@luwes/little-vdom](https://unpkg.com/@luwes/little-vdom)  
+**cdn**: [cdn.jsdelivr.net/gh/lloydzhou/little-vdom](https://cdn.jsdelivr.net/gh/lloydzhou/little-vdom@main/dist/little-vdom.js)
 
 ---
 
