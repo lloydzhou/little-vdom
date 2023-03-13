@@ -18,7 +18,7 @@
 
 Use reactive JSX with minimal overhead.
 
-## Usage ([Codepen](https://codepen.io/luwes/pen/ZEXPbzE?editors=0011))
+## Usage ([Codepen](https://codepen.io/lloydzhou/pen/rNZJgKE?editors=0011))
 
 ```jsx
 /** @jsx h */
