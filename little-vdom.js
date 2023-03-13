@@ -3,7 +3,186 @@
 // https://gist.github.com/marvinhagemeister/8950b1032d67918d21950b3985259d78
 // Added refs, style maps
 
-const h = (type, props, ...children) => {
+// https://codesandbox.io/s/mnox05qp8?file=/src/index.js
+// HOOKS
+// public API
+
+function useEffect(effect, deps) {
+  const i = hookContext.index++;
+  if (!hookContext.hooks[i]) {
+    hookContext.hooks[i] = effect;
+    hookContext.deps[i] = deps;
+    hookContext.cleanups[i] = effect();
+  } else {
+    if (deps && !sameArray(deps, hookContext.deps[i])) {
+      if (hookContext.cleanups[i]) {
+        hookContext.cleanups[i]();
+      }
+      hookContext.cleanups[i] = effect();
+    }
+  }
+}
+
+function useState(initial) {
+  const i = hookContext.index++;
+  if (!hookContext.hooks[i]) {
+    hookContext.hooks[i] = {
+      state: transformState(initial)
+    };
+  }
+  const thisHookContext = hookContext;
+  return [
+    hookContext.hooks[i].state,
+    useCallback(newState => {
+      thisHookContext.hooks[i].state = transformState(
+        newState,
+        thisHookContext.hooks[i].state
+      );
+      thisHookContext.setState();
+    }, [])
+  ];
+}
+
+function useCallback(cb, deps) {
+  return useMemo(() => cb, deps);
+}
+
+function useMemo(factory, deps) {
+  const i = hookContext.index++;
+  if (
+    !hookContext.hooks[i] ||
+    !deps ||
+    !sameArray(deps, hookContext.deps[i])
+  ) {
+    hookContext.hooks[i] = factory();
+    hookContext.deps[i] = deps;
+  }
+  return hookContext.hooks[i];
+}
+
+function useReducer(reducer, initialState, initialAction) {
+  const i = hookContext.index++;
+  if (!hookContext.hooks[i]) {
+    hookContext.hooks[i] = {
+      state: initialAction ? reducer(initialState, initialAction) : initialState
+    };
+  }
+  const thisHookContext = hookContext;
+  return [
+    hookContext.hooks[i].state,
+    useCallback(action => {
+      thisHookContext.hooks[i].state = reducer(
+        thisHookContext.hooks[i].state,
+        action
+      );
+      thisHookContext.setState();
+    }, [])
+  ];
+}
+
+function useRef(initialValue) {
+  return useCallback(refHolderFactory(initialValue), []);
+}
+
+function useLayoutEffect(effect, deps) {
+  const i = hookContext.index++;
+  const thisHookContext = hookContext;
+  useEffect(() => {
+    thisHookContext.effects[i] = () => {
+      thisHookContext.cleanups[i] = effect();
+    };
+  }, deps);
+}
+
+// end public api
+
+let hookContext;
+
+function transformState(state, prevState) {
+  if (typeof state === "function") {
+    return state(prevState);
+  }
+  return state;
+}
+
+function sameArray(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < arr1.length; ++i) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function refHolderFactory(reference) {
+  function RefHolder(ref) {
+    reference = ref;
+  }
+  Object.defineProperty(RefHolder, "current", {
+    get: () => reference,
+    set: (r) => reference = r,
+    enumerable: true,
+    configurable: true
+  });
+  return RefHolder;
+}
+
+// end HOOKS
+
+function wrap(type) {
+  const context = {
+    index: 0,
+    hooks: [],
+    cleanups: [],
+    deps: [],
+    effects: [],
+  }
+  const runHooks = (t) => {
+    for (let i = 0; i < context.hooks.length; ++i) {
+      const effect = context[t][i];
+      if (effect) {
+        try {
+          effect();
+        } catch (e) {}
+      }
+    }
+    context[t] = [];
+  }
+  const fc = (props, state, update) => {
+    const prevContext = hookContext
+    try {
+      hookContext = context;
+      context.index = 0;
+      context.setState = update
+      return type(props, state, update)
+    } finally {
+      // start componentDidMount/componentDidUpdate
+      runHooks('effects')
+      // end componentDidMount/componentDidUpdate
+      hookContext = prevContext;
+    }
+  }
+  fc.unmount = () => runHooks('cleanups')
+  return fc
+}
+
+const hooks = new WeakMap()
+
+// change `h` function, support react hooks
+const h = (_type, props, ...children) => {
+  let type = _type
+  if (_type.call) {
+    type = hooks.get(_type)
+    if (!type){
+      type = wrap(_type)
+      hooks.set(_type, type)
+    }
+  }
   return {
     _type: type,
     _props: props, // An object for components and DOM nodes, a string for text nodes.
@@ -72,7 +251,7 @@ const diff = (newVNode, dom, oldVNode, currentChildIndex) => {
     if (newVNode._props != oldVNode._props) {
       // If newVNode.type is truthy (=not an empty string) we have a DOM node
       if (newVNode._type) {
-        const { key, ref, ...newProps } = newVNode._props;
+        const { key, ref, ...newProps } = newVNode._props || {};
         if (ref) ref.current = newDom;
 
         for (let name in newProps) {
@@ -144,14 +323,24 @@ const diffChildren = (parentDom, newChildren, oldVNode) => {
     });
 
   // remove old children if there are any
-  oldChildren.map((oldChild) => {
-    const node = (oldChild._patched && oldChild._patched.dom) || oldChild.dom;
-    if (node) {
-      node.remove();
-    }
-  });
+  oldChildren.map((oldChild) => removePatchedChildren(oldChild))
 
   return oldVNode;
 };
 
-export { h, Fragment, render };
+function removePatchedChildren(child) {
+  const { _children = [], _normalizedChildren=[], _patched, _type={} } = child
+  if (_type && _type.unmount) {
+    _type.unmount()
+  }
+  // remove children
+  _children.concat(_patched).map(c => c && removePatchedChildren(c))
+  // remove dom from _normalizedChildren or itself
+  _normalizedChildren.concat(child).map(i => i && i.dom && i.dom.remove())
+}
+
+export {
+  h, Fragment, render,
+  useState, useReducer, useRef, useMemo,
+  useEffect, useLayoutEffect, useCallback
+};
