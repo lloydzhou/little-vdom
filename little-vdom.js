@@ -125,7 +125,7 @@ function refHolderFactory(reference) {
   }
   Object.defineProperty(RefHolder, "current", {
     get: () => reference,
-    set: (r) => reference = r,
+    set: RefHolder,
     enumerable: true,
     configurable: true
   });
