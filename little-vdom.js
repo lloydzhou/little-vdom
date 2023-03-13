@@ -323,7 +323,7 @@ const diffChildren = (parentDom, newChildren, oldVNode) => {
     });
 
   // remove old children if there are any
-  oldChildren.map((oldChild) => removePatchedChildren(oldChild))
+  oldChildren.map(removePatchedChildren)
 
   return oldVNode;
 };
