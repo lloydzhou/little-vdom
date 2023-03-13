@@ -251,7 +251,7 @@ const diff = (newVNode, dom, oldVNode, currentChildIndex) => {
     if (newVNode._props != oldVNode._props) {
       // If newVNode.type is truthy (=not an empty string) we have a DOM node
       if (newVNode._type) {
-        const { key, ref, ...newProps } = newVNode._props;
+        const { key, ref, ...newProps } = newVNode._props || {};
         if (ref) ref.current = newDom;
 
         for (let name in newProps) {

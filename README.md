@@ -7,7 +7,7 @@
 
 ---
 
-- 650B Virtual DOM
+- 1.2k none dependency React like library with hooks
 - Components
 - State
 - Diffing
@@ -23,24 +23,39 @@ Use reactive JSX with minimal overhead.
 ```jsx
 /** @jsx h */
 
-// Components get passed (props, state, setState)
-function Counter(props, { count = 0 }, update) {
-  const increment = () => update({ count: ++count });
-  return <button onclick={increment}>{count}</button>
-}
-
-function Since({ time }, state, update) {
-  setTimeout(update, 1000); // update every second
+// functional component using hooks
+function Since({ time }) {
+  const [count, setCount] = useState()
+  const r = useRef()
+  useEffect(() => {
+    console.log('update', r.current)
+    const timer = setTimeout(() => {
+      setCount(count + 1) // update every second
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [count])
+  useEffect(() => {
+    console.log('mounted', r, r.current)
+    return () => {
+      console.log('unmounted')
+    }
+  }, [])
   const ago = (Date.now() - time) / 1000 | 0;
-  return <time>{ago}s ago</time>
+  return (
+    <Fragment>
+      <h1>Title</h1>
+      <time ref={r}>{ago}s ago</time>
+    </Fragment>
+  )
 }
 
-render(
-  <div id="app">
-    <h1>Hello</h1>
-    <Since time={Date.now()} />
-    <Counter />
-  </div>,
-  document.body
-);
+function App() {
+  const [visible, setVisible] = useState(true)
+  useEffect(() => {
+    setTimeout(() => setVisible(false), 3000)
+  }, [])
+  return <div>{visible ? <Since time={Date.now()} /> : <div>clear</div>}</div>
+}
+
+render(<App />, document.querySelector('#root'))
 ```
