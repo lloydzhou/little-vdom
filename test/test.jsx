@@ -228,7 +228,7 @@ describe('all', () => {
 
     render(<List values={values} />, scratch);
     expect(scratch.textContent).to.equal('abc');
-    expect(getLog()).to.deep.equal(['<li>d.remove()']);
+    expect(getLog()).to.deep.equal(['<li>.remove()']);
   });
 
   it('should prepend keyed elements to the beginning', () => {

@@ -5,10 +5,14 @@
 /** @jsxFrag Fragment */
 
 import { h, Fragment, render, useState, useEffect, useRef } from "./little-vdom.js";
+import { createContext, useContext } from "./little-vdom.js";
+
+const Context = createContext()
 
 function Since({ time }) {
   const [count, setCount] = useState()
   const r = useRef()
+  const context = useContext(Context)
   useEffect(() => {
     console.log('update', r.current)
     const timer = setTimeout(() => {
@@ -27,16 +31,29 @@ function Since({ time }) {
     <>
       <h1>Title</h1>
       <time ref={r}>{ago}s ago</time>
+      <div>context.value: {context.value}</div>
     </>
   )
 }
 
 function App() {
   const [visible, setVisible] = useState(true)
+  const [context, setContext] = useState({value: 1})
   useEffect(() => {
-    setTimeout(() => setVisible(false), 3000)
+    setTimeout(() => setContext({value: 2}), 2000)
+    setTimeout(() => setContext({value: 5}), 5000)
+    setTimeout(() => setVisible(false), 10000)
   }, [])
-  return <div>{visible ? <Since time={Date.now()} /> : <div>clear</div>}</div>
+  return (
+    <div>
+      <Context.Provider value={context}>
+        {visible ? <Since time={Date.now()} /> : <div>clear</div>}
+        <Context.Consumer>
+          {(c) => <div>value in Consumer{c}</div>}
+        </Context.Consumer>
+      </Context.Provider>
+    </div>
+  )
 }
 
 render(<App />, document.querySelector('#root'))

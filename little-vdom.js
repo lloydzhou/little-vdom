@@ -94,6 +94,34 @@ function useLayoutEffect(effect, deps) {
   }, deps);
 }
 
+function createContext(initialValue) {
+  let value = initialValue
+  const subscribers = []
+  const subscribe = (update) => {
+    subscribers.push(update)
+    return () => subscribers.splice(subscribers.indexOf(update), 1)
+  }
+  const Provider = (props) => {
+    // componentWillUnmount
+    useEffect(() => subscribers.length = 0, [])
+    // update value, and call subscribers
+    useEffect(() => {
+      value = props.value
+      subscribers.forEach(s => s())
+    }, [props.value])
+    return props.children
+  }
+  return { Provider, subscribe, getContext: () => value }
+}
+
+function useContext({subscribe, getContext}) {
+  const [_, update] = useState()
+  // register update callback to context
+  useEffect(() => subscribe(update), [])
+  // return current value
+  return getContext()
+}
+
 // end public api
 
 let hookContext;
@@ -342,5 +370,6 @@ function removePatchedChildren(child) {
 export {
   h, Fragment, render,
   useState, useReducer, useRef, useMemo,
-  useEffect, useLayoutEffect, useCallback
+  useEffect, useLayoutEffect, useCallback,
+  createContext, useContext,
 };
