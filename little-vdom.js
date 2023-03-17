@@ -357,7 +357,7 @@ const diffChildren = (parentDom, newChildren, oldVNode) => {
 };
 
 function removePatchedChildren(child) {
-  const { _children = [], _normalizedChildren=[], _patched, _type={} } = child
+  const { _children = [], _patched, _type={} } = child
   if (_type && _type.unmount) {
     _type.unmount()
   }
