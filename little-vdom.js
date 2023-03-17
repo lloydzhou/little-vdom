@@ -363,8 +363,8 @@ function removePatchedChildren(child) {
   }
   // remove children
   _children.concat(_patched).map(c => c && removePatchedChildren(c))
-  // remove dom from _normalizedChildren or itself
-  _normalizedChildren.concat(child).map(i => i && i.dom && i.dom.remove())
+  // remove dom
+  child.dom && child.dom.remove()
 }
 
 export {
