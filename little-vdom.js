@@ -199,20 +199,10 @@ function wrap(type) {
   return fc
 }
 
-const hooks = new WeakMap()
-
 // change `h` function, support react hooks
 const h = (_type, props, ...children) => {
-  let type = _type
-  if (_type.call) {
-    type = hooks.get(_type)
-    if (!type){
-      type = wrap(_type)
-      hooks.set(_type, type)
-    }
-  }
   return {
-    _type: type,
+    _type: _type.call ? wrap(_type) : _type,
     _props: props, // An object for components and DOM nodes, a string for text nodes.
     _children: children.filter((_) => _ !== false),
     key: props && props.key,
